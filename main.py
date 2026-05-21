@@ -30,14 +30,18 @@ try:
     while True:
         # Loop through using enumerate so we can match the descriptor to the status
         for s_idx, sensor in enumerate(device.sensor):
-            s_id = sensor.id 
-            
+            s_id = sensor.id
+
             for ss_idx, sub_sensor in enumerate(sensor.sensor_descriptor.sub_sensor_descriptor):
                 ss_id = sub_sensor.id 
                 sensor_type = sub_sensor.sensor_type 
                 
-                # --- FILTER FOR ACCELEROMETER ONLY ---
-                if sensor_type == 'ACC':
+                # --- IMPORTANT: sensor cheatsheet   ---
+                # --- FORMAT: sensor_id.subsensor_id ---
+                # ACC: 0.0, 2.0, 4.0
+                # GYRO: 4.1
+                # MIC: 6.0
+                if sensor_type == 'ACC' or sensor_type == "":
                     
                     # Fetch the live data
                     sensor_data = hsd_link_instance.get_sensor_data(device_id, s_id, ss_id)
@@ -70,7 +74,7 @@ try:
                                 real_y = raw_y * sensitivity
                                 real_z = raw_z * sensitivity
                                 
-                                print(f"ACC [mg] -> X: {real_x:.2f}, Y: {real_y:.2f}, Z: {real_z:.2f}")
+                                #print(f"ACC [mg] -> X: {real_x:.2f}, Y: {real_y:.2f}, Z: {real_z:.2f}")
                     
                     
                         
