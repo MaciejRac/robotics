@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Electron App</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 40px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+            min-height: 100vh;
+        }
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            max-width: 600px;
+        }
+        h1 {
+            color: #667eea;
+            margin-top: 0;
+        }
+        p {
+            line-height: 1.6;
+            color: #666;
+        }
+        .info {
+            background: #f5f5f5;
+            padding: 15px;
+            border-left: 4px solid #667eea;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 Electron App</h1>
+        <p>Aplikacja działa poprawnie!</p>
+        <div class="info">
+            <p><strong>Node.js:</strong> <span id="node-version"></span></p>
+            <p><strong>Chromium:</strong> <span id="chrome-version"></span></p>
+            <p><strong>Electron:</strong> <span id="electron-version"></span></p>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('node-version').textContent = process.versions.node;
+        document.getElementById('chrome-version').textContent = process.versions.chrome;
+        document.getElementById('electron-version').textContent = process.versions.electron;
+    </script>
+</body>
+</html>
