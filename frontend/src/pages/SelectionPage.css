@@ -1,0 +1,50 @@
+.selection-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  gap: 40px;
+}
+
+.selection-container h1 {
+  font-size: 48px;
+  margin: 0;
+  margin-bottom: 20px;
+  color: #ffffff;
+  font-weight: bold;
+  text-align: center;
+}
+
+.buttons-container {
+  display: flex;
+  gap: 40px;
+  justify-content: center;
+  align-items: center;
+}
+
+.button-link {
+  text-decoration: none;
+}
+
+.selection-button {
+  padding: 30px 60px;
+  font-size: 24px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.selection-button:hover {
+  background-color: #0056b3;
+  transform: scale(1.05);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
+}
+
+.selection-button:active {
+  transform: scale(0.98);
+}
