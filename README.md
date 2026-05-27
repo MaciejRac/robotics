@@ -7,3 +7,10 @@ Project for robotics for human health and performence
 3. Navigate to `fp-sns-datalog1/Utilities/HSDPython_SDK`
 4. Run `HSDPython_install_noGUI` script
 5. Run `main.py`
+
+# Running the frontend
+1. Need to have npm and node installed
+2. Run `cd frontend`
+3. Run `npm init`
+4. Run `npm install electron --save-dev`
+5. Run `npm start`
