@@ -10,9 +10,11 @@ Project for robotics for human health and performence
    ```bash
    npm install
    ```
-3. Install additional routing library:
+3. Install additional libraries:
    ```bash
    npm install react-router-dom
+   npm install three ws
+   npm install -D @types/three
    ```
 4. Start the development server with Electron:
    ```bash
@@ -23,8 +25,9 @@ Project for robotics for human health and performence
 5. The frontend allows you to choose between 2D and 3D visualization modes
 
 # Running the backend
-1. Create and activate **Python 3.10!!!** virtual environment in this repository
-2. Clone the [FP-SNS-DATALOG1](https://github.com/STMicroelectronics/fp-sns-datalog1) repository
-3. Navigate to `fp-sns-datalog1/Utilities/HSDPython_SDK`
-4. Run `HSDPython_install_noGUI` script
-5. Run `main.py`
+1. Navigate to `backend` folder
+2. Create and activate **Python 3.10!!!** virtual environment in this repository
+3. Clone the [FP-SNS-DATALOG1](https://github.com/STMicroelectronics/fp-sns-datalog1) repository
+4. Navigate to `fp-sns-datalog1/Utilities/HSDPython_SDK`
+5. Run `HSDPython_install_noGUI` script
+6. Run `main.py`

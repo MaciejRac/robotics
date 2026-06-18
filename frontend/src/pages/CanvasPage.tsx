@@ -1,14 +1,131 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
+import * as THREE from 'three';
 
 const CanvasPage: React.FC = () => {
   const { type } = useParams<{ type: string }>();
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    // 1. Zapisujemy aktualną referencję do zmiennej!
+    const currentContainer = containerRef.current;
+    
+    if (type !== '3d' || !currentContainer) return;
+
+    // --- Inicjalizacja sceny Three.js ---
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0xf0f0f0);
+
+    const camera = new THREE.PerspectiveCamera(75, 800 / 600, 0.1, 1000);
+    camera.position.set(5, 5, 5);
+    camera.lookAt(0, 0, 0);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(800, 600);
+    
+    // Używamy zapisanej referencji
+    currentContainer.appendChild(renderer.domElement);
+
+    // Oświetlenie i siatka pomocnicza
+    const light = new THREE.DirectionalLight(0xffffff, 1);
+    light.position.set(5, 10, 5);
+    scene.add(light);
+    scene.add(new THREE.AmbientLight(0x404040));
+    scene.add(new THREE.GridHelper(10, 10));
+
+    // Obiekt reprezentujący czujnik/długopis
+    const penGeometry = new THREE.CylinderGeometry(0.1, 0.1, 1, 16);
+    penGeometry.rotateX(Math.PI / 2);
+    const penMaterial = new THREE.MeshPhongMaterial({ color: 0x007bff });
+    const penMesh = new THREE.Mesh(penGeometry, penMaterial);
+    scene.add(penMesh);
+
+    // Linia śladu (trajektoria)
+    const maxPoints = 10000;
+    const lineMaterial = new THREE.LineBasicMaterial({ color: 0xff0000, linewidth: 2 });
+    const lineGeometry = new THREE.BufferGeometry();
+    const positions = new Float32Array(maxPoints * 3);
+    lineGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    lineGeometry.setDrawRange(0, 0);
+    const line = new THREE.Line(lineGeometry, lineMaterial);
+    scene.add(line);
+
+    let pointCount = 0;
+
+    // Pętla renderowania
+    let animationFrameId: number;
+    const animate = () => {
+      animationFrameId = requestAnimationFrame(animate);
+      renderer.render(scene, camera);
+    };
+    animate();
+
+    // Odbieranie danych z WebSocket
+    const ws = new WebSocket('ws://localhost:8080');
+    ws.onopen = () => console.log('Frontend połączony z serwerem danych ruchu');
+
+    ws.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        
+        if (data.position && data.quaternion) {
+          const SCALE = 10; 
+          const x = data.position.x * SCALE;
+          const y = data.position.y * SCALE;
+          const z = data.position.z * SCALE;
+
+          penMesh.position.set(x, y, z);
+          penMesh.quaternion.set(
+            data.quaternion.x,
+            data.quaternion.y,
+            data.quaternion.z,
+            data.quaternion.w
+          );
+
+          if (pointCount < maxPoints) {
+            positions[pointCount * 3] = x;
+            positions[pointCount * 3 + 1] = y;
+            positions[pointCount * 3 + 2] = z;
+            pointCount++;
+            lineGeometry.attributes.position.needsUpdate = true;
+            lineGeometry.setDrawRange(0, pointCount);
+          }
+        }
+      } catch (e) {
+        console.error('Błąd dekodowania payloadu', e);
+      }
+    };
+
+    // --- 5. Poprawione czyszczenie przy odmontowaniu widoku ---
+    return () => {
+      cancelAnimationFrame(animationFrameId);
+      ws.close();
+      
+      // 2. Bezpieczne usuwanie konkretnego elementu canvas ze zbuforowanej referencji
+      if (currentContainer && currentContainer.contains(renderer.domElement)) {
+        currentContainer.removeChild(renderer.domElement);
+      }
+      
+      // 3. Pełne sprzątanie pamięci karty graficznej
+      renderer.dispose();
+      penGeometry.dispose();
+      penMaterial.dispose();
+      lineGeometry.dispose(); // Dodano czyszczenie geometrii linii
+      lineMaterial.dispose(); // Dodano czyszczenie materiału linii
+    };
+  }, [type]);
 
   return (
-    <div>
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
       <h1>Wizualizacja {type?.toUpperCase()}</h1>
-      <canvas id="robot-canvas" width="800" height="600" style={{ border: '1px solid black' }}></canvas>
-      {/* Tutaj będzie logika rysowania na canvasie */}
+      
+      {/* Jeśli 3D, podpinamy div, do którego Three.js wepnie swój canvas */}
+      {type === '3d' ? (
+        <div ref={containerRef} style={{ border: '2px solid #333', borderRadius: '4px' }}></div>
+      ) : (
+        /* Twój stary statyczny Canvas dla wersji 2D */
+        <canvas id="robot-canvas" width="800" height="600" style={{ border: '2px solid #333' }}></canvas>
+      )}
     </div>
   );
 };
