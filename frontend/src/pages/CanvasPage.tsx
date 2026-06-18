@@ -1,9 +1,11 @@
 import React, { useEffect, useRef } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import * as THREE from 'three';
+import './CanvasPage.css';
 
 const CanvasPage: React.FC = () => {
   const { type } = useParams<{ type: string }>();
+  const navigate = useNavigate();
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -116,15 +118,22 @@ const CanvasPage: React.FC = () => {
   }, [type]);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+    <div className="canvas-container">
       <h1>Wizualizacja {type?.toUpperCase()}</h1>
+      
+      <button
+        onClick={() => navigate('/')}
+        className="back-button"
+      >
+        ← Wróć do wyboru
+      </button>
       
       {/* Jeśli 3D, podpinamy div, do którego Three.js wepnie swój canvas */}
       {type === '3d' ? (
-        <div ref={containerRef} style={{ border: '2px solid #333', borderRadius: '4px' }}></div>
+        <div ref={containerRef} className="canvas-wrapper"></div>
       ) : (
         /* Twój stary statyczny Canvas dla wersji 2D */
-        <canvas id="robot-canvas" width="800" height="600" style={{ border: '2px solid #333' }}></canvas>
+        <canvas id="robot-canvas" width="800" height="600" className="canvas-wrapper"></canvas>
       )}
     </div>
   );
