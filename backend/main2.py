@@ -30,51 +30,73 @@ GRAVITY_MS2 = 9.81
 ACCEL_DEADBAND = 0.25   # Odrzucamy przyspieszenia poniżej 0.25 m/s^2 (szum)
 VELOCITY_DAMPING = 0.92 # Wirtualne tarcie. 1.0 = brak tarcia (dryf!), 0.0 = brak ruchu. Zmniejsz, jeśli długopis ucieka.
 
+ACC_S = 4
+ACC_SS = 0
+
+GYRO_S = 4
+GYRO_SS = 1
+
+MAG_S = 3
+MAG_SS = 0
+
+DEVICE_ID= 0
+
+sensors_id = {
+    "ACC": (ACC_S, ACC_SS),
+    "GYRO": (GYRO_S, GYRO_SS),
+    "MAG": (MAG_S, MAG_SS)
+}
+
+normalize_coeff = {
+    "ACC" : GRAVITY_MS2,
+    "GYRO":  (np.pi / 180000.0),
+    "MAG": (1.0 / 10.0)
+}
+
+def get_latest_sample(link_instance, device, sensor_str):
+    s_id, ss_id = sensors_id[sensor_str]
+
+    sensor_data = link_instance.get_sensor_data(DEVICE_ID, s_id, ss_id)
+
+    if sensor_data is None:
+        return None
+
+    raw_bytes = sensor_data[1]
+
+    samples = len(raw_bytes) // 6
+
+    for i in range(samples):
+        offset = i * 6
+        chunk = raw_bytes[offset:offset+6]
+
+        raw_x, raw_y, raw_z = struct.unpack('<hhh', chunk)
+
+        status = device.sensor[s_id].sensor_status.sub_sensor_status[ss_id]
+        sensitivity = status.sensitivity
+
+        latest_acc = np.array([raw_x * sensitivity, raw_y * sensitivity, raw_z * sensitivity]) * normalize_coeff[sensor_str]
+    
+    return latest_acc
+
 # --- 3. Połączenie z płytką ---
 hsd_link = HSDLink()
 hsd_link_instance = hsd_link.create_hsd_link()
-device_id = 0
 
 if hsd_link_instance is None: exit()
-device = hsd_link.get_device(hsd_link_instance, device_id)
-hsd_link.start_log(hsd_link_instance, device_id)
+device = hsd_link.get_device(hsd_link_instance, DEVICE_ID)
+hsd_link.start_log(hsd_link_instance, DEVICE_ID)
 
 try:
     while True:
         data_updated = False
         latest_acc = latest_gyro = latest_mag = None
-        
-        # ... [TUTAJ ZNAJDUJE SIĘ STANDARDOWA PĘTLA ZBIERAJĄCA DANE Z POPRZEDNIEGO KODU] ...
-        for s_idx, sensor in enumerate(device.sensor):
-            s_id = sensor.id
-            for ss_idx, sub_sensor in enumerate(sensor.sensor_descriptor.sub_sensor_descriptor):
-                ss_id = sub_sensor.id 
-                sensor_type = sub_sensor.sensor_type 
-                
-                if sensor_type in ['ACC', 'GYRO', 'MAG']:
-                    sensor_data = hsd_link_instance.get_sensor_data(device_id, s_id, ss_id)
-                    if sensor_data is not None and len(sensor_data) == 2:
-                        raw_bytes = sensor_data[1]
-                        status = device.sensor[s_idx].sensor_status.sub_sensor_status[ss_idx]
-                        sensitivity = status.sensitivity
-                        bytes_per_sample = 6
-                        
-                        if len(raw_bytes) >= bytes_per_sample:
-                            chunk = raw_bytes[-bytes_per_sample:]
-                            raw_x, raw_y, raw_z = struct.unpack('<hhh', chunk)
-                            real_x, real_y, real_z = raw_x * sensitivity, raw_y * sensitivity, raw_z * sensitivity
-                            
-                            if sensor_type == 'ACC':
-                                latest_acc = np.array([real_x, real_y, real_z]) / 1000.0 # w G
-                            elif sensor_type == 'GYRO':
-                                latest_gyro = np.array([real_x, real_y, real_z]) * (np.pi / 180000.0) # Rad/s
-                            elif sensor_type == 'MAG':
-                                latest_mag = np.array([real_x, real_y, real_z]) / 10.0 # uT
-                            
-                            data_updated = True
+
+        latest_acc = get_latest_sample(hsd_link_instance, device, "ACC")
+        latest_gyro = get_latest_sample(hsd_link_instance, device, "GYRO")
+        latest_mag = get_latest_sample(hsd_link_instance, device, "MAG")
                                 
         # --- 4. OBLICZENIA I PODWÓJNA CAŁKA ---
-        if data_updated and (latest_acc is not None) and (latest_gyro is not None) and (latest_mag is not None):
+        if (latest_acc is not None) and (latest_gyro is not None) and (latest_mag is not None):
             
             # Obliczanie precyzyjnego dt
             current_time = time.time()
@@ -126,6 +148,6 @@ try:
         time.sleep(0.01) # Szybsze próbkowanie = lepsza całka
 
 except KeyboardInterrupt:
-    hsd_link.stop_log(hsd_link_instance, device_id)
+    hsd_link.stop_log(hsd_link_instance, DEVICE_ID)
     ws.close()
     print("\nStrumień bezpiecznie zatrzymany.")
