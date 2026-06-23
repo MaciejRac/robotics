@@ -71,7 +71,7 @@ const CanvasPage: React.FC = () => {
         const data = JSON.parse(event.data);
         
         if (data.position && data.quaternion) {
-          const SCALE = 10; 
+          const SCALE = 0.1; 
           const x = data.position.x * SCALE;
           const y = data.position.y * SCALE;
           const z = data.position.z * SCALE;

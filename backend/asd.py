@@ -27,14 +27,14 @@ last_time = time.time()
 # --- PARAMETRY "MAGII" (Możesz je dostrajać) ---
 GRAVITY_MS2 = 9.81
 ACCEL_DEADBAND = 0.25   # Odrzucamy przyspieszenia poniżej 0.25 m/s^2 (szum)
-VELOCITY_DAMPING = 0.4 # Wirtualne tarcie. 1.0 = brak tarcia (dryf!), 0.0 = brak ruchu.
+VELOCITY_DAMPING = 0.5 # Wirtualne tarcie. 1.0 = brak tarcia (dryf!), 0.0 = brak ruchu.
 
 DEVICE_ID = 0
 
 normalize_coeff = {
-    "ACC" : GRAVITY_MS2,         # Konwersja z mg na g (1g = 1.0)
-    "GYRO": (np.pi / 180000.0),     # Konwersja z mdps na rad/s
-    "MAG":  (1.0 / 1000.0)          # Konwersja z mgauss na Gauss
+    "ACC" : GRAVITY_MS2,
+    "GYRO":  (np.pi / 180000.0),
+    "MAG": (1.0 / 10.0)
 }
 
 # Stanowe bufory i parametry dla każdego z czujników osobno
@@ -48,15 +48,11 @@ sensor_configs = {
 # --- Inicjalizacja parametrów z urządzenia ---
 def init_sensor_params(device):
     for s_name, cfg in sensor_configs.items():
-        status = device.sensor[cfg["s_id"]].sensor_status.sub_sensor_status[cfg["ss_id"]]
-        
-        # FIX: Dynamically read the exact samples per timestamp
-        cfg["spts"] = status.samples_per_ts
-        cfg["sensitivity"] = status.sensitivity
-        
-        # The block size will now perfectly match the USB stream payload
-        cfg["block_size"] = 8 + (cfg["spts"] * 3 * 2) 
+        cfg["block_size"] = 8 + (cfg["spts"] * 3 * 2) # 8 bajtów TS + próbki int16
         cfg["dtype"] = np.dtype([('ts', '<f8'), ('samples', '<i2', (cfg["spts"], 3))])
+        
+        status = device.sensor[cfg["s_id"]].sensor_status.sub_sensor_status[cfg["ss_id"]]
+        cfg["sensitivity"] = status.sensitivity
 
 # --- Nowa, bezpieczna funkcja pobierająca najświeższą próbkę ---
 def get_latest_sample(link_instance, sensor_str):
@@ -136,6 +132,7 @@ try:
     while True:
         # Odczyt pobiera dane, parsuje bloki, odrzuca timestampy i zwraca sam czysty pomiar
         latest_acc = get_latest_sample(hsd_link_instance, "ACC")
+        print(latest_acc)
         latest_gyro = get_latest_sample(hsd_link_instance, "GYRO")
         latest_mag = get_latest_sample(hsd_link_instance, "MAG")
                                 
@@ -150,10 +147,7 @@ try:
             # Zabezpieczenie przed skokami przy starcie/zwiechach PC
             if dt > 0.1: dt = 0.02 
 
-            # KROK 1: Orientacja przestrzenn
-            # # KROK 1: Orientacja przestrzenna
-            # FIX: Force the AHRS to use the exact time delta of the current loop
-            madgwick.Dt = dt 
+            # KROK 1: Orientacja przestrzenna
             q = madgwick.updateMARG(q, gyr=latest_gyro, acc=latest_acc, mag=latest_mag)
             
             # KROK 2: Kompensacja grawitacji

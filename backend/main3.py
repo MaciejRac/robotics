@@ -32,7 +32,7 @@ VELOCITY_DAMPING = 0.4 # Wirtualne tarcie. 1.0 = brak tarcia (dryf!), 0.0 = brak
 DEVICE_ID = 0
 
 normalize_coeff = {
-    "ACC" : GRAVITY_MS2,         # Konwersja z mg na g (1g = 1.0)
+    "ACC" : (1.0 / 1000.0),         # Konwersja z mg na g (1g = 1.0)
     "GYRO": (np.pi / 180000.0),     # Konwersja z mdps na rad/s
     "MAG":  (1.0 / 1000.0)          # Konwersja z mgauss na Gauss
 }
@@ -50,13 +50,22 @@ def init_sensor_params(device):
     for s_name, cfg in sensor_configs.items():
         status = device.sensor[cfg["s_id"]].sensor_status.sub_sensor_status[cfg["ss_id"]]
         
-        # FIX: Dynamically read the exact samples per timestamp
-        cfg["spts"] = status.samples_per_ts
+        # Read dynamically from the board
+        dynamic_spts = getattr(status, 'samples_per_ts', 0)
+        
+        # SAFETY CHECK: If the board returns 0, keep the dictionary's default (1000 or 100)
+        if dynamic_spts is not None and dynamic_spts > 0:
+            cfg["spts"] = dynamic_spts
+        else:
+            print(f"[{s_name}] Ostrzeżenie: spts=0 z płytki. Używam domyślnego: {cfg['spts']}")
+            
         cfg["sensitivity"] = status.sensitivity
         
-        # The block size will now perfectly match the USB stream payload
+        # Recalculate block size safely
         cfg["block_size"] = 8 + (cfg["spts"] * 3 * 2) 
         cfg["dtype"] = np.dtype([('ts', '<f8'), ('samples', '<i2', (cfg["spts"], 3))])
+        
+        print(f"[{s_name}] Gotowy! Czułość: {cfg['sensitivity']}, BlockSize: {cfg['block_size']}")
 
 # --- Nowa, bezpieczna funkcja pobierająca najświeższą próbkę ---
 def get_latest_sample(link_instance, sensor_str):
@@ -126,12 +135,12 @@ if hsd_link_instance is None:
 
 device = hsd_link.get_device(hsd_link_instance, DEVICE_ID)
 
-# Inicjujemy bufory, sprawdzamy czułości w locie
-init_sensor_params(device)
+
 
 hsd_link.start_log(hsd_link_instance, DEVICE_ID)
+# Inicjujemy bufory, sprawdzamy czułości w locie
+init_sensor_params(device)
 print("\n--- Start Akwizycji i Fuzji Danych ---")
-
 try:
     while True:
         # Odczyt pobiera dane, parsuje bloki, odrzuca timestampy i zwraca sam czysty pomiar
