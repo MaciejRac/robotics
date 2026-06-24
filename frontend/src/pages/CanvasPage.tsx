@@ -7,7 +7,7 @@ const CanvasPage: React.FC = () => {
   const { type } = useParams<{ type: string }>();
   const navigate = useNavigate();
   const containerRef = useRef<HTMLDivElement>(null);
-  const [latency, setLatency] = useState<number>(0);
+  const [maxLatency, setMaxLatency] = useState<number>(0);
 
   useEffect(() => {
     // 1. Zapisujemy aktualną referencję do zmiennej!
@@ -77,7 +77,7 @@ const CanvasPage: React.FC = () => {
           const serverTime = data.timestamp ? data.timestamp * 1000 : renderTime;
           const latencyMs = renderTime - serverTime;
           
-          setLatency(Math.max(0, latencyMs));
+          setMaxLatency((currentMax) => Math.max(currentMax, Math.max(0, latencyMs)));
           
           const timestamp = data.timestamp ? new Date(data.timestamp * 1000).toISOString() : 'N/A';
           console.log(`[${timestamp}] Opóźnienie: ${latencyMs.toFixed(2)}ms`);
@@ -142,7 +142,7 @@ const CanvasPage: React.FC = () => {
         fontSize: '14px',
         zIndex: 100
       }}>
-        Opóźnienie: <strong>{latency.toFixed(2)}ms</strong>
+        Max latency: <strong>{maxLatency.toFixed(2)}ms</strong>
       </div>
       
       <button
