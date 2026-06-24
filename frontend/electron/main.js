@@ -1,4 +1,4 @@
-import { app, BrowserWindow } from "electron";
+import { app, BrowserWindow, Menu } from "electron";
 import { WebSocketServer } from "ws";
 
 function createWindow() {
@@ -9,7 +9,7 @@ function createWindow() {
       contextIsolation: true
     }
   });
-
+  Menu.setApplicationMenu(null);
   win.loadURL("http://localhost:5173");
 }
 
