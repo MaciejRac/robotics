@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import * as THREE from 'three';
 import './CanvasPage.css';
@@ -7,6 +7,7 @@ const CanvasPage: React.FC = () => {
   const { type } = useParams<{ type: string }>();
   const navigate = useNavigate();
   const containerRef = useRef<HTMLDivElement>(null);
+  const [latency, setLatency] = useState<number>(0);
 
   useEffect(() => {
     // 1. Zapisujemy aktualną referencję do zmiennej!
@@ -71,7 +72,15 @@ const CanvasPage: React.FC = () => {
         const data = JSON.parse(event.data);
         
         if (data.position && data.quaternion) {
-          const SCALE = 0.1; 
+          const SCALE = 0.1;
+          const renderTime = Date.now();
+          const serverTime = data.timestamp ? data.timestamp * 1000 : renderTime;
+          const latencyMs = renderTime - serverTime;
+          
+          setLatency(Math.max(0, latencyMs));
+          
+          const timestamp = data.timestamp ? new Date(data.timestamp * 1000).toISOString() : 'N/A';
+          console.log(`[${timestamp}] Opóźnienie: ${latencyMs.toFixed(2)}ms`);
           const x = data.position.x * SCALE;
           const y = data.position.y * SCALE;
           const z = data.position.z * SCALE;
@@ -120,6 +129,21 @@ const CanvasPage: React.FC = () => {
   return (
     <div className="canvas-container">
       <h1>Wizualizacja {type?.toUpperCase()}</h1>
+      
+      <div style={{
+        position: 'absolute',
+        top: '20px',
+        right: '20px',
+        background: 'rgba(0, 0, 0, 0.7)',
+        color: '#00ff00',
+        padding: '10px 15px',
+        borderRadius: '5px',
+        fontFamily: 'monospace',
+        fontSize: '14px',
+        zIndex: 100
+      }}>
+        Opóźnienie: <strong>{latency.toFixed(2)}ms</strong>
+      </div>
       
       <button
         onClick={() => navigate('/')}

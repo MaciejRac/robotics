@@ -39,6 +39,7 @@ try:
 
         # --- 3. Pakowanie i wysyłka ---
         payload = {
+            "timestamp": time.time(),
             "quaternion": {"w": qw, "x": qx, "y": qy, "z": qz},
             "position": {"x": x, "y": y, "z": z}
         }
